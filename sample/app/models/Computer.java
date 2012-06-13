@@ -62,12 +62,6 @@ public class Computer {
 	 * Insert this new computer.
 	 */
 	public void save() {
-		if (this.company != null && this.company.id == null) {
-			this.company = null;
-		} else {
-			this.company = Company.findById(company.id);
-		}
-		this.id = id;
 		JPA.em().persist(this);
 	}
 
@@ -165,7 +159,7 @@ public class Computer {
 
 	@Override
 	public String toString() {
-		return "Computer [id=" + id + "]";
+		return "Computer [id=" + id + ", name=" + name + "]";
 	}
 
 }
