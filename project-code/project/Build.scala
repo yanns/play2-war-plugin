@@ -17,11 +17,17 @@ object Build extends Build {
   val servlet25SampleProjectTargetDir = new File(curDir, "../sample/servlet25/target")
   val servlet25SampleWarPath = new File(servlet25SampleProjectTargetDir, "a-play2war-sample-servlet25-1.0-SNAPSHOT.war").getAbsolutePath
 
+  //
+  // Root project
+  //
   lazy val root = Project(id = "play2-war",
     base = file("."),
     settings = commonSettings ++ Seq(
       publishArtifact := false)) aggregate (play2WarCoreCommon, play2WarCoreservlet30, play2WarCoreservlet25, play2WarPlugin, play2WarIntegrationTests)
 
+  //
+  // Servlet implementations
+  //
   lazy val play2WarCoreCommon = Project(id = "play2-war-core-common",
     base = file("core/common"),
     settings = commonSettings ++ Seq(
@@ -40,35 +46,47 @@ object Build extends Build {
       libraryDependencies += "play" %% "play" % play2Version % "provided->default" exclude ("javax.servlet", "servlet-api"),
       libraryDependencies += "javax.servlet" % "servlet-api" % "2.5" % "provided->default")) dependsOn (play2WarCoreCommon)
 
+  //
+  // Plugin
+  //
   lazy val play2WarPlugin = Project(id = "play2-war-plugin",
     base = file("plugin"),
     settings = commonSettings ++ Seq(
+      scalaVersion := buildScalaVersionForSbt,
+      scalaBinaryVersion  := CrossVersion.binaryScalaVersion(buildScalaVersionForSbt),
       sbtPlugin := true,
 
       sourceGenerators in Compile <+= sourceManaged in Compile map Play2WarVersion,
 
       libraryDependencies <++= (scalaVersion, sbtVersion) { (scalaVersion, sbtVersion) =>
         Seq(
-          "play" % "sbt-plugin" % play2Version % "provided->default(compile)" extra ("scalaVersion" -> scalaVersion, "sbtVersion" -> sbtVersion))
+          "play" % "sbt-plugin" % play2Version % "provided->default(compile)" extra ("scalaVersion" -> buildScalaVersionForSbt, "sbtVersion" -> buildSbtVersionBinaryCompatible))
       }))
 
+  //
+  // Integration tests
+  //
   lazy val play2WarIntegrationTests = Project(id = "integration-tests",
     base = file("integration-tests"),
     settings = commonSettings ++ Seq(
       sbtPlugin := false,
       publishArtifact := false,
+      scalaBinaryVersion := buildScalaVersion,
 
-      libraryDependencies += "org.scalatest" %% "scalatest" % "1.8" % "test",
+      libraryDependencies += "org.scalatest" %% "scalatest" % "1.8-B1" % "test",
       libraryDependencies += "junit" % "junit" % "4.10" % "test",
-      libraryDependencies += "org.codehaus.cargo" % "cargo-core-uberjar" % "1.3.0" % "test",
+      libraryDependencies += "org.codehaus.cargo" % "cargo-core-uberjar" % "1.3.1" % "test",
       libraryDependencies += "net.sourceforge.htmlunit" % "htmlunit" % "2.10" % "test",
 
       parallelExecution in Test := false,
       testOptions in Test += Tests.Argument("-oD"),
       testOptions in Test += Tests.Argument("-Dwar.servlet30=" + servlet30SampleWarPath),
-	    testOptions in Test += Tests.Argument("-Dwar.servlet25=" + servlet25SampleWarPath),
+      testOptions in Test += Tests.Argument("-Dwar.servlet25=" + servlet25SampleWarPath),
       testListeners <<= target.map(t => Seq(new eu.henkelmann.sbt.JUnitXmlTestsListener(t.getAbsolutePath)))))
 
+  //
+  // Settings
+  //
   def commonSettings = buildSettings ++
     Seq(
       scalacOptions ++= Seq("-unchecked", "-deprecation"),
@@ -112,13 +130,20 @@ object Build extends Build {
   object BuildSettings {
 
     val buildOrganization = "com.github.play2war"
-    val defaultPlay2Version = "2.0.2"
+    val defaultPlay2Version = "2.1-RC1"
     val play2Version = Option(System.getProperty("play2.version")).filterNot(_.isEmpty).getOrElse(defaultPlay2Version)
-    val buildVersion = "0.8.1"
+    val buildVersion = "0.9-RC1"
+    val buildScalaVersion = "2.10.0-RC3"
+    val buildScalaVersionForSbt = "2.9.2"
+    val buildSbtVersion   = "0.12.1"
+    val buildSbtVersionBinaryCompatible = "0.12"
 
     val buildSettings = Defaults.defaultSettings ++ Seq(
-      organization := buildOrganization,
-      version := buildVersion)
+      organization        := buildOrganization,
+      version             := buildVersion,
+      scalaVersion        := buildScalaVersion,
+      scalaBinaryVersion  := CrossVersion.binaryScalaVersion(buildScalaVersion),
+      checksums in update := Nil)
 
   }
 
