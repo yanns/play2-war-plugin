@@ -428,55 +428,55 @@ abstract class AbstractPlay2WarTests extends FeatureSpec with GivenWhenThen with
   }
 }
 
-abstract class AbstractTomcat7x extends AbstractPlay2WarTests with Servlet30Container {
-  def tomcatVersion() = "Version to override"
-  override def containerUrl = "http://archive.apache.org/dist/tomcat/tomcat-7/v" + tomcatVersion + "/bin/apache-tomcat-"+ tomcatVersion + ".tar.gz"
-  override def containerName = "tomcat7x"
-}
+// abstract class AbstractTomcat7x extends AbstractPlay2WarTests with Servlet30Container {
+//   def tomcatVersion() = "Version to override"
+//   override def containerUrl = "http://archive.apache.org/dist/tomcat/tomcat-7/v" + tomcatVersion + "/bin/apache-tomcat-"+ tomcatVersion + ".tar.gz"
+//   override def containerName = "tomcat7x"
+// }
 
 /*@RunWith(classOf[JUnitRunner])
 class Tomcat7027Tests extends AbstractTomcat7x {
   override def tomcatVersion = "7.0.27"
 }*/
 
-@RunWith(classOf[JUnitRunner])
-class Tomcat6xTests extends AbstractPlay2WarTests with Servlet25Container with Java6 {
-  override def containerUrl = "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.35/bin/apache-tomcat-6.0.35.tar.gz"
-  override def containerFileNameInCloudbeesCache = Option("apache-tomcat-6.0.35.tar.gz")
-  override def containerName = "tomcat6x"
-}
+// @RunWith(classOf[JUnitRunner])
+// class Tomcat6xTests extends AbstractPlay2WarTests with Servlet25Container with Java6 {
+//   override def containerUrl = "http://archive.apache.org/dist/tomcat/tomcat-6/v6.0.35/bin/apache-tomcat-6.0.35.tar.gz"
+//   override def containerFileNameInCloudbeesCache = Option("apache-tomcat-6.0.35.tar.gz")
+//   override def containerName = "tomcat6x"
+// }
 
 /*@RunWith(classOf[JUnitRunner])
 class Tomcat7027Tests extends AbstractTomcat7x {
   override def tomcatVersion = "7.0.27"
 }*/
 
-@RunWith(classOf[JUnitRunner])
-class Jetty7xTests extends AbstractPlay2WarTests with Servlet25Container with Java6 {
-  override def containerUrl = "http://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/7.6.5.v20120716/jetty-distribution-7.6.5.v20120716.tar.gz"
-  override def containerFileNameInCloudbeesCache = Option("jetty-distribution-7.6.5.v20120716.tar.gz")
-  override def containerName = "jetty7x"
-}
+// @RunWith(classOf[JUnitRunner])
+// class Jetty7xTests extends AbstractPlay2WarTests with Servlet25Container with Java6 {
+//   override def containerUrl = "http://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/7.6.5.v20120716/jetty-distribution-7.6.5.v20120716.tar.gz"
+//   override def containerFileNameInCloudbeesCache = Option("jetty-distribution-7.6.5.v20120716.tar.gz")
+//   override def containerName = "jetty7x"
+// }
 
-@RunWith(classOf[JUnitRunner])
-class Tomcat70xTests extends AbstractTomcat7x with Java6 {
-  override def tomcatVersion = "7.0.32"
-  override def containerFileNameInCloudbeesCache = Option("apache-tomcat-7.0.32.zip")
-}
+// @RunWith(classOf[JUnitRunner])
+// class Tomcat70xTests extends AbstractTomcat7x with Java6 {
+//   override def tomcatVersion = "7.0.32"
+//   override def containerFileNameInCloudbeesCache = Option("apache-tomcat-7.0.32.zip")
+// }
 
-@RunWith(classOf[JUnitRunner])
-class Jetty8xTests extends AbstractPlay2WarTests with Servlet30Container with Java6 {
-  override def containerUrl = "http://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/8.1.3.v20120416/jetty-distribution-8.1.3.v20120416.tar.gz"
-  override def containerFileNameInCloudbeesCache = Option("jetty-distribution-8.1.3.v20120416.tar.gz")
-  override def containerName = "jetty8x"
-}
+// @RunWith(classOf[JUnitRunner])
+// class Jetty8xTests extends AbstractPlay2WarTests with Servlet30Container with Java6 {
+//   override def containerUrl = "http://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/8.1.3.v20120416/jetty-distribution-8.1.3.v20120416.tar.gz"
+//   override def containerFileNameInCloudbeesCache = Option("jetty-distribution-8.1.3.v20120416.tar.gz")
+//   override def containerName = "jetty8x"
+// }
 
-@RunWith(classOf[JUnitRunner])
-class Jetty9xTests extends AbstractPlay2WarTests with Servlet30Container with Java7 {
-  override def containerUrl = "http://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/9.0.0.M2/jetty-distribution-9.0.0.M2.tar.gz"
-  override def containerFileNameInCloudbeesCache = Option("jetty-distribution-9.0.0.M2.tar.gz")
-  override def containerName = "jetty9x"
-}
+// @RunWith(classOf[JUnitRunner])
+// class Jetty9xTests extends AbstractPlay2WarTests with Servlet30Container with Java7 {
+//   override def containerUrl = "http://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/9.0.0.M2/jetty-distribution-9.0.0.M2.tar.gz"
+//   override def containerFileNameInCloudbeesCache = Option("jetty-distribution-9.0.0.M2.tar.gz")
+//   override def containerName = "jetty9x"
+// }
 
 // Doesn't work yet : deployment of sample war fails : Command deploy requires an operand of type class java.io.File
 //@RunWith(classOf[JUnitRunner])
