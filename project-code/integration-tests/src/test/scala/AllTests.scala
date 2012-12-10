@@ -500,5 +500,6 @@ class Tomcat7027Tests extends AbstractTomcat7x {
 @RunWith(classOf[JUnitRunner])
 class JBoss71xTests extends AbstractPlay2WarTests with Servlet30Container {
   override def containerUrl = "http://download.jboss.org/jbossas/7.1/jboss-as-7.1.1.Final/jboss-as-7.1.1.Final.zip"
+  override def containerFileNameInCloudbeesCache = Option("jboss-as-7.1.1.Final.zip")
   override def containerName = "jboss71x"
 }
