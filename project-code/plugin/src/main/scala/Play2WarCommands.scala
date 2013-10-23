@@ -22,6 +22,7 @@ import java.util.jar.Manifest
 import scala.collection.immutable.Stream.consWrapper
 
 import com.github.play2war.plugin.Play2WarKeys._
+import com.typesafe.sbt.SbtNativePackager.Universal
 
 import sbt.ConfigKey.configurationToKey
 import sbt.Keys._
@@ -48,7 +49,7 @@ trait Play2WarCommands extends play.PlayCommands with play.PlayReloader with pla
     val dependencies = (dependencyClasspath in Runtime).value
     val unmanagedDependencies = (unmanagedClasspath in Runtime).value
     val id = normalizedName.value
-    //val packaged = com.typesafe.sbt.packager.Keys.dist.value
+    val packaged = (mappings in Universal).value
     s.log.info("Build WAR package for servlet container: " + servletVersion.value)
 
     if (dependencies.exists(_.data.name.contains("play2-war-core-common"))) {
@@ -74,45 +75,8 @@ trait Play2WarCommands extends play.PlayCommands with play.PlayReloader with pla
         s.log.debug("Ignoring dependency " + groupId + " -> " + artifactId)
     }
 
-    val files: Traversable[(File, String)] = dependencies.
-      filter(_.data.ext == "jar").flatMap { dependency =>
-      val filename = for {
-        module <- dependency.get(AttributeKey[ModuleID]("module-id"))
-        artifact <- dependency.get(AttributeKey[Artifact]("artifact"))
-        if (!allFilteredArtifacts.contains((module.organization, module.name)))
-      } yield {
-        // groupId.artifactId-version[-classifier].extension
-        module.organization + "." + module.name + "-" + module.revision + artifact.classifier.map("-" + _).getOrElse("") + "." + artifact.extension
-      }
-      filename.map { fName =>
-        val path = "WEB-INF/lib/" + fName
-        Some(dependency.data -> path)
-      }.getOrElse(None)
-    } ++ unmanagedDependencies.map { unmanaged =>
-      val path = "WEB-INF/lib/" + unmanaged.data.getName
-      unmanaged.data -> path
-    } ++ {
-//      if (explodedJar) {
-//        s.log.info("Main artifacts " + packaged.map(_.getName).mkString("'", " ", "'") + " will be packaged exploded")
-//
-//        val explodedJarDir = target / "exploded"
-//
-//        IO.delete(explodedJarDir)
-//        IO.createDirectory(explodedJarDir)
-//
-//        packaged.flatMap { jar =>
-//          IO.unzip(jar, explodedJarDir).map {
-//            file =>
-//              val partialPath = IO.relativize(explodedJarDir, file).getOrElse(file.getName)
-//
-//              file -> ("WEB-INF/classes/" + partialPath)
-//          }
-//        }
-//      } else packaged.get.map(jar => jar -> ("WEB-INF/lib/" + jar.getName))
-      val distFile = (sbt.Keys.`package` in Compile).value
-      val path = "WEB-INF/lib/" + distFile.getName
-      (distFile -> path) :: Nil
-    }
+    val files: Traversable[(File, String)] =
+       packaged.filter(_._2.endsWith(".jar")).map { case (jar,name) => jar -> ("WEB-INF/" + name) }
 
     files.foreach { case (file, path) =>
       s.log.debug("Embedding file " + file + " -> " + path)
