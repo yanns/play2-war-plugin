@@ -10,6 +10,7 @@ import play.api.libs.iteratee._
 import scala.concurrent.{Future, Promise}
 import play.api.libs.iteratee.Input.El
 import play.api.mvc.SimpleResult
+import scala.concurrent.stm.Ref
 
 class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
   extends Play2GenericServletRequestHandler(servletRequest, None)
@@ -82,65 +83,46 @@ class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
   }
 
   private def readServletRequest[A](servletInputStream: ServletInputStream, consumer: => Iteratee[Array[Byte], A]): Future[A] = {
-    val exContext = play.api.libs.concurrent.Execution.defaultContext
+    implicit val exContext = play.api.libs.concurrent.Execution.defaultContext
     //val exContext = play.core.Execution.Implicits.internalContext
 
-    var doneOrError = false
     val result = Promise[A]()
-    var iteratee: Iteratee[Array[Byte], A] = consumer
+    val iterateeRef = Ref[Future[Iteratee[Array[Byte], A]]](Future.successful(consumer))
 
     val readListener = new ReadListener {
 
       def onDataAvailable() {
-        Logger("play.war.servlet31").error(s"onDataAvailable, doneOrError=$doneOrError")
-
-        if (!doneOrError) {
-          iteratee = iteratee.pureFlatFold { folder =>
-
-            // consume the http body in any case
+        Logger("play.war.servlet31").error(s"onDataAvailable begin")
+        val nextIteratee = Promise[Iteratee[Array[Byte], A]]()
+        iterateeRef.single.transform { fCurrent =>
+          val current = Iteratee.flatten(fCurrent)
+          nextIteratee.success(current.pureFlatFold { step =>
             Logger("play").error(s"will consume body")
             Thread.sleep(200)
             val chunk = consumeBody(servletInputStream)
-
-            folder match {
-              case Step.Cont(k) => {
+            val ready = servletInputStream.isReady
+            val finished = servletInputStream.isFinished
+            Logger("play.war.servlet31").error(s"consumes ${chunk.length} bytes - servletInputStream.isReady=$ready - servletInputStream.isFinished=$finished")
+            step match {
+              case Step.Cont(k) =>
                 Logger("play.war.servlet31").error(s"cont - consumes ${chunk.length} bytes")
                 k(El(chunk))
-              }
-
-              case Step.Done(a, e) => {
-                Logger("play.war.servlet31").error("done")
-                doneOrError = true
-                val it = Done(a, e)
-                result.success(a)
-                it
-              }
-
-              case Step.Error(e, input) => {
-                Logger("play.war.servlet31").error("error: $e")
-                doneOrError = true
-                result.failure(new Exception(e))
-                val it = Error(e, input)
-                it
-              }
+              case other =>
+                Logger("play.war.servlet31").error(s"$other - consumes ${chunk.length} bytes")
+                other.it
             }
-          }(exContext)
-        } else {
-          consumeBody(servletInputStream)
-          iteratee = null
+          })
+          nextIteratee.future
         }
+        Logger("play.war.servlet31").error(s"onDataAvailable end")
       }
 
       def onAllDataRead() {
-        val maybeIteratee = Option(iteratee)
-        Logger("play.war.servlet31").error("onAllDataRead: " + maybeIteratee.isDefined)
-
-        maybeIteratee.map { it =>
-          it.run.map { a =>
-            Logger("play.war.servlet31").error("extract result from it")
-            result.success(a)
-          }(exContext)
-        }
+        Logger("play.war.servlet31").error("onAllDataRead")
+        result.completeWith(for {
+          it <- iterateeRef.single.get
+          a <- it.run
+        } yield a)
       }
 
       def onError(t: Throwable) {
