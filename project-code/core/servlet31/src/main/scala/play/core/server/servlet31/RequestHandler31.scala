@@ -10,6 +10,8 @@ import play.api.libs.iteratee._
 import scala.concurrent.{Future, Promise}
 import play.api.libs.iteratee.Input.El
 import play.api.mvc.SimpleResult
+import akka.actor.{Props, ActorSystem}
+import akka.util.Timeout
 
 class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
   extends Play2GenericServletRequestHandler(servletRequest, None)
@@ -81,66 +83,25 @@ class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
     output.toByteArray
   }
 
-  private def readServletRequest[A](servletInputStream: ServletInputStream, consumer: => Iteratee[Array[Byte], A]): Future[A] = {
-    val exContext = play.api.libs.concurrent.Execution.defaultContext
+  private def readServletRequest(servletInputStream: ServletInputStream, consumer: => Iteratee[Array[Byte], SimpleResult]): Future[SimpleResult] = {
     //val exContext = play.core.Execution.Implicits.internalContext
+    import ReadActor._
 
-    var doneOrError = false
-    val result = Promise[A]()
-    var iteratee: Iteratee[Array[Byte], A] = consumer
+    val result = Promise[SimpleResult]()
+    val system = ActorSystem()
+    val props = Props(new ReadActor(servletInputStream, consumer, result))
+    // TODO: with request ID
+    val readActor = system.actorOf(props, "read-actor")
 
     val readListener = new ReadListener {
 
       def onDataAvailable() {
-        Logger("play.war.servlet31").error(s"onDataAvailable, doneOrError=$doneOrError")
-
-        if (!doneOrError) {
-          iteratee = iteratee.pureFlatFold { folder =>
-
-            // consume the http body in any case
-            Logger("play").error(s"will consume body")
-            Thread.sleep(200)
-            val chunk = consumeBody(servletInputStream)
-
-            folder match {
-              case Step.Cont(k) => {
-                Logger("play.war.servlet31").error(s"cont - consumes ${chunk.length} bytes")
-                k(El(chunk))
-              }
-
-              case Step.Done(a, e) => {
-                Logger("play.war.servlet31").error("done")
-                doneOrError = true
-                val it = Done(a, e)
-                result.success(a)
-                it
-              }
-
-              case Step.Error(e, input) => {
-                Logger("play.war.servlet31").error("error: $e")
-                doneOrError = true
-                result.failure(new Exception(e))
-                val it = Error(e, input)
-                it
-              }
-            }
-          }(exContext)
-        } else {
-          consumeBody(servletInputStream)
-          iteratee = null
-        }
+        readActor ! DataAvailable
       }
 
       def onAllDataRead() {
-        val maybeIteratee = Option(iteratee)
-        Logger("play.war.servlet31").error("onAllDataRead: " + maybeIteratee.isDefined)
-
-        maybeIteratee.map { it =>
-          it.run.map { a =>
-            Logger("play.war.servlet31").error("extract result from it")
-            result.success(a)
-          }(exContext)
-        }
+        Logger("play.servlet31").error(s"all data read")
+        readActor ! AllDataRead
       }
 
       def onError(t: Throwable) {
