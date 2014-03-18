@@ -82,10 +82,11 @@ class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
   }
 
   private def readServletRequest[A](servletInputStream: ServletInputStream, consumer: => Iteratee[Array[Byte], A]): Future[A] = {
-    val exContext = play.api.libs.concurrent.Execution.defaultContext
-    //val exContext = play.core.Execution.Implicits.internalContext
+    //val exContext = play.api.libs.concurrent.Execution.defaultContext
+    val exContext = play.core.Execution.Implicits.internalContext
 
     var doneOrError = false
+    var allDataRead = false
     val result = Promise[A]()
     var iteratee: Iteratee[Array[Byte], A] = consumer
 
@@ -102,7 +103,7 @@ class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
             Thread.sleep(200)
             val chunk = consumeBody(servletInputStream)
 
-            folder match {
+            val nextStep = folder match {
               case Step.Cont(k) => {
                 Logger("play.war.servlet31").error(s"cont - consumes ${chunk.length} bytes")
                 k(El(chunk))
@@ -124,6 +125,15 @@ class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
                 it
               }
             }
+
+            if (allDataRead) {
+              Logger("play.war.servlet31").error("will try to extract result from nextStep")
+              nextStep.run.map { a =>
+                Logger("play.war.servlet31").error("extract result from nextStep")
+                result.success(a)
+              }(exContext)
+            }
+            nextStep
           }(exContext)
         } else {
           consumeBody(servletInputStream)
@@ -134,13 +144,14 @@ class Play2Servlet31RequestHandler(servletRequest: HttpServletRequest)
       def onAllDataRead() {
         val maybeIteratee = Option(iteratee)
         Logger("play.war.servlet31").error("onAllDataRead: " + maybeIteratee.isDefined)
+        allDataRead = true
 
-        maybeIteratee.map { it =>
-          it.run.map { a =>
-            Logger("play.war.servlet31").error("extract result from it")
-            result.success(a)
-          }(exContext)
-        }
+//        maybeIteratee.map { it =>
+//          it.run.map { a =>
+//            Logger("play.war.servlet31").error("extract result from it")
+//            result.success(a)
+//          }(exContext)
+//        }
       }
 
       def onError(t: Throwable) {
